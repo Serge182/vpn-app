@@ -142,7 +142,13 @@
                 const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
                 state.connectionTime = formatTime(elapsed);
                 state.dataUsed = `${Math.floor(elapsed / 10 + Math.random() * 5)} MB`;
-                render();
+                
+                // Обновляем только данные таймера, не весь интерфейс
+                const timeElement = document.getElementById('connection-time');
+                const dataElement = document.getElementById('data-used');
+                
+                if (timeElement) timeElement.textContent = state.connectionTime;
+                if (dataElement) dataElement.textContent = state.dataUsed;
             }
         }
 
@@ -258,7 +264,7 @@
             const currentServer = servers.find(s => s.name === state.selectedServer);
             
             return `
-                <div class="flex flex-col items-center px-6 py-8 pb-48 fade-in">
+                <div class="flex flex-col items-center px-6 py-4 pb-48 fade-in">
                     <!-- VPN Logo -->
                     <div class="text-center mb-12">
                         <div class="text-6xl font-bold text-orange-500 mb-4 ${state.isConnected ? 'pulse' : ''}">
@@ -313,11 +319,11 @@
                     <div class="w-full bg-gray-900/50 rounded-2xl p-4 mb-6 border border-gray-800 fade-in">
                         <div class="flex items-center justify-between mb-3">
                             <span class="text-gray-400">Время подключения</span>
-                            <span class="text-white font-mono">${state.connectionTime}</span>
+                            <span id="connection-time" class="text-white font-mono">${state.connectionTime}</span>
                         </div>
                         <div class="flex items-center justify-between mb-3">
                             <span class="text-gray-400">Передано данных</span>
-                            <span class="text-white">${state.dataUsed}</span>
+                            <span id="data-used" class="text-white">${state.dataUsed}</span>
                         </div>
                         <div class="flex items-center justify-between">
                             <span class="text-gray-400">IP адрес</span>
