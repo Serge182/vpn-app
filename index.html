@@ -283,7 +283,7 @@
             const currentServer = servers.find(s => s.name === state.selectedServer);
             
             return `
-                <div class="flex flex-col items-center px-6 py-8 fade-in">
+                <div class="flex flex-col items-center px-6 py-8 pb-48 fade-in">
                     <!-- VPN Logo -->
                     <div class="text-center mb-12">
                         <div class="text-6xl font-bold text-orange-500 mb-4 ${state.isConnected ? 'pulse' : ''}">
@@ -354,7 +354,7 @@
                     <!-- Server Selection -->
                     <button
                         onclick="showServerList()"
-                        class="w-full bg-gray-900/50 rounded-2xl p-4 border border-gray-800 flex items-center justify-between btn-shadow hover:bg-gray-800/50 transition-colors"
+                        class="w-full bg-gray-900/50 rounded-2xl p-4 border border-gray-800 flex items-center justify-between btn-shadow hover:bg-gray-800/50 transition-colors mb-8"
                     >
                         <div class="flex items-center space-x-3">
                             <svg class="w-5 h-5 text-orange-500" fill="currentColor" viewBox="0 0 24 24">
@@ -374,7 +374,7 @@
                 </div>
 
                 <!-- Bottom CTA -->
-                <div class="absolute bottom-0 left-0 right-0 p-6">
+                <div class="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black via-black/90 to-transparent">
                     <div class="text-center mb-4">
                         <div class="flex items-center justify-center mb-2">
                             <span class="text-2xl">⚡</span>
