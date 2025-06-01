@@ -9,10 +9,6 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="theme-color" content="#000000">
     
-    <!-- PWA icons -->
-    <link rel="icon" type="image/png" sizes="192x192" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔒</text></svg>">
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔒</text></svg>">
-    
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
@@ -81,7 +77,6 @@
             -webkit-overflow-scrolling: touch;
         }
         
-        /* Улучшенная тень для кнопок */
         .btn-shadow {
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
@@ -91,7 +86,6 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
         }
         
-        /* Градиент для premium кнопки */
         .premium-gradient {
             background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
         }
@@ -106,46 +100,53 @@
 
     <script>
         // Состояние приложения
-        let state = {
+        var state = {
             isConnected: false,
             selectedServer: 'Россия',
             showServers: false,
+            showSettings: false,
+            showStats: false,
             connectionTime: '00:00:00',
             dataUsed: '0 MB',
             connectionTimer: null,
             startTime: null,
-            isConnecting: false
+            isConnecting: false,
+            autoConnect: true,
+            killSwitch: false,
+            notifications: true,
+            totalConnections: 47,
+            totalDataSaved: '2.3 GB',
+            averageSpeed: '85 Mbps'
         };
 
         // Список серверов
-        const servers = [
+        var servers = [
             { name: 'Россия', flag: '🇷🇺', ping: '12ms', location: 'Москва' },
             { name: 'США', flag: '🇺🇸', ping: '45ms', location: 'Нью-Йорк' },
             { name: 'Германия', flag: '🇩🇪', ping: '25ms', location: 'Берлин' },
             { name: 'Япония', flag: '🇯🇵', ping: '78ms', location: 'Токио' },
             { name: 'Великобритания', flag: '🇬🇧', ping: '35ms', location: 'Лондон' },
-            { name: 'Канада', flag: '🇨🇦', ping: '52ms', location: 'Торонто' },
-            { name: 'Франция', flag: '🇫🇷', ping: '28ms', location: 'Париж' },
-            { name: 'Австралия', flag: '🇦🇺', ping: '95ms', location: 'Сидней' }
+            { name: 'Канада', flag: '🇨🇦', ping: '52ms', location: 'Торонто' }
         ];
 
         // Утилиты
         function formatTime(seconds) {
-            const hours = Math.floor(seconds / 3600);
-            const mins = Math.floor((seconds % 3600) / 60);
-            const secs = seconds % 60;
-            return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+            var hours = Math.floor(seconds / 3600);
+            var mins = Math.floor((seconds % 3600) / 60);
+            var secs = seconds % 60;
+            return hours.toString().padStart(2, '0') + ':' + 
+                   mins.toString().padStart(2, '0') + ':' + 
+                   secs.toString().padStart(2, '0');
         }
 
         function updateConnectionTimer() {
             if (state.isConnected && state.startTime) {
-                const elapsed = Math.floor((Date.now() - state.startTime) / 1000);
+                var elapsed = Math.floor((Date.now() - state.startTime) / 1000);
                 state.connectionTime = formatTime(elapsed);
-                state.dataUsed = `${Math.floor(elapsed / 10 + Math.random() * 5)} MB`;
+                state.dataUsed = Math.floor(elapsed / 10 + Math.random() * 5) + ' MB';
                 
-                // Обновляем только данные таймера, не весь интерфейс
-                const timeElement = document.getElementById('connection-time');
-                const dataElement = document.getElementById('data-used');
+                var timeElement = document.getElementById('connection-time');
+                var dataElement = document.getElementById('data-used');
                 
                 if (timeElement) timeElement.textContent = state.connectionTime;
                 if (dataElement) dataElement.textContent = state.dataUsed;
@@ -158,15 +159,13 @@
             state.isConnecting = true;
             render();
             
-            // Имитация процесса подключения
-            setTimeout(() => {
+            setTimeout(function() {
                 state.isConnected = !state.isConnected;
                 state.isConnecting = false;
                 
                 if (state.isConnected) {
                     state.startTime = Date.now();
                     state.connectionTimer = setInterval(updateConnectionTimer, 1000);
-                    // Показываем уведомление о подключении
                     showNotification('Подключение установлено', 'success');
                 } else {
                     if (state.connectionTimer) {
@@ -184,12 +183,12 @@
         }
 
         function selectServer(server) {
-            const prevServer = state.selectedServer;
+            var prevServer = state.selectedServer;
             state.selectedServer = server.name;
             state.showServers = false;
             
             if (prevServer !== server.name) {
-                showNotification(`Выбран сервер: ${server.name}`, 'info');
+                showNotification('Выбран сервер: ' + server.name, 'info');
             }
             
             render();
@@ -205,288 +204,322 @@
             render();
         }
 
-        function showNotification(message, type = 'info') {
-            const notification = document.createElement('div');
-            notification.className = `fixed top-20 left-4 right-4 p-4 rounded-xl z-50 text-center font-medium transition-all duration-300 ${
-                type === 'success' ? 'bg-green-600' : 
-                type === 'error' ? 'bg-red-600' : 'bg-blue-600'
-            }`;
+        function showSettings() {
+            state.showSettings = true;
+            render();
+        }
+
+        function hideSettings() {
+            state.showSettings = false;
+            render();
+        }
+
+        function showStats() {
+            state.showStats = true;
+            render();
+        }
+
+        function hideStats() {
+            state.showStats = false;
+            render();
+        }
+
+        function toggleSetting(setting) {
+            state[setting] = !state[setting];
+            var settingName = setting === 'autoConnect' ? 'Автоподключение' : 
+                             setting === 'killSwitch' ? 'Kill Switch' : 'Уведомления';
+            showNotification(settingName + ' ' + (state[setting] ? 'включено' : 'отключено'), 'info');
+            render();
+        }
+
+        function showNotification(message, type) {
+            var notification = document.createElement('div');
+            var bgClass = type === 'success' ? 'bg-green-600' : 
+                         type === 'error' ? 'bg-red-600' : 'bg-blue-600';
+            
+            notification.className = 'fixed top-20 left-4 right-4 p-4 rounded-xl z-50 text-center font-medium transition-all duration-300 ' + bgClass;
             notification.textContent = message;
             notification.style.transform = 'translateY(-100px)';
             notification.style.opacity = '0';
             
             document.body.appendChild(notification);
             
-            setTimeout(() => {
+            setTimeout(function() {
                 notification.style.transform = 'translateY(0)';
                 notification.style.opacity = '1';
             }, 100);
             
-            setTimeout(() => {
+            setTimeout(function() {
                 notification.style.transform = 'translateY(-100px)';
                 notification.style.opacity = '0';
-                setTimeout(() => {
+                setTimeout(function() {
                     document.body.removeChild(notification);
                 }, 300);
             }, 3000);
         }
 
         // Компоненты UI
-        function StatusBar() {
-            return ``;
-        }
-
         function Header() {
-            return `
-                <div class="flex items-center justify-between p-4 pt-8">
-                    <div class="flex items-center space-x-3">
-                        <svg class="w-6 h-6 text-orange-500" fill="currentColor" viewBox="0 0 24 24">
-                            <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>
-                        </svg>
-                        <span class="text-xl font-bold">FastVPN</span>
-                    </div>
-                    <div class="flex items-center space-x-4">
-                        <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="3"/>
-                            <path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/>
-                        </svg>
-                        <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                            <line x1="3" y1="6" x2="21" y2="6"/>
-                            <line x1="3" y1="12" x2="21" y2="12"/>
-                            <line x1="3" y1="18" x2="21" y2="18"/>
-                        </svg>
-                    </div>
-                </div>
-            `;
+            return '<div class="flex items-center justify-between p-4 pt-8">' +
+                '<div class="flex items-center space-x-3">' +
+                    '<svg class="w-6 h-6 text-orange-500" fill="currentColor" viewBox="0 0 24 24">' +
+                        '<path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4z"/>' +
+                    '</svg>' +
+                    '<span class="text-xl font-bold">FastVPN</span>' +
+                '</div>' +
+                '<div class="flex items-center space-x-4">' +
+                    '<button onclick="showStats()" class="p-1 hover:bg-gray-800 rounded-lg transition-colors">' +
+                        '<svg class="w-5 h-5 text-gray-400 hover:text-white" fill="currentColor" viewBox="0 0 24 24">' +
+                            '<path d="M3 3v18h18V3H3zm16 16H5V5h14v14zM7 10h2v7H7v-7zm4-3h2v10h-2V7zm4 1h2v9h-2V8z"/>' +
+                        '</svg>' +
+                    '</button>' +
+                    '<button onclick="showSettings()" class="p-1 hover:bg-gray-800 rounded-lg transition-colors">' +
+                        '<svg class="w-5 h-5 text-gray-400 hover:text-white" fill="currentColor" viewBox="0 0 24 24">' +
+                            '<circle cx="12" cy="12" r="3"/>' +
+                            '<path d="M12 1v6m0 6v6m11-7h-6m-6 0H1"/>' +
+                        '</svg>' +
+                    '</button>' +
+                '</div>' +
+            '</div>';
         }
 
         function MainScreen() {
-            const currentServer = servers.find(s => s.name === state.selectedServer);
+            var currentServer = null;
+            for (var i = 0; i < servers.length; i++) {
+                if (servers[i].name === state.selectedServer) {
+                    currentServer = servers[i];
+                    break;
+                }
+            }
             
-            return `
-                <div class="flex flex-col items-center px-6 py-4 pb-48 fade-in">
-                    <!-- VPN Logo -->
-                    <div class="text-center mb-12">
-                        <div class="text-6xl font-bold text-orange-500 mb-4 ${state.isConnected ? 'pulse' : ''}">
-                            ${state.isConnecting ? 'VPN' : 'VPN'}
-                        </div>
-                        <div class="w-16 h-1 bg-orange-500 mx-auto rounded-full"></div>
-                        ${state.isConnecting ? '<div class="text-orange-400 text-sm mt-2">Подключение...</div>' : ''}
-                    </div>
+            return '<div class="flex flex-col items-center px-6 py-4 pb-48 fade-in">' +
+                '<div class="text-center mb-12">' +
+                    '<div class="text-6xl font-bold text-orange-500 mb-4 ' + (state.isConnected ? 'pulse' : '') + '">' +
+                        'VPN' +
+                    '</div>' +
+                    '<div class="w-16 h-1 bg-orange-500 mx-auto rounded-full"></div>' +
+                    (state.isConnecting ? '<div class="text-orange-400 text-sm mt-2">Подключение...</div>' : '') +
+                '</div>' +
 
-                    <!-- Connection Toggle -->
-                    <div class="relative mb-8">
-                        <button
-                            onclick="toggleConnection()"
-                            class="w-32 h-16 rounded-full toggle-switch btn-shadow ${
-                                state.isConnecting ? 'bg-yellow-500' :
-                                state.isConnected ? 'bg-orange-500' : 'bg-gray-700'
-                            } relative ${state.isConnecting ? 'animate-pulse' : ''}"
-                            ${state.isConnecting ? 'disabled' : ''}
-                        >
-                            <div class="absolute top-2 w-12 h-12 bg-white rounded-full toggle-knob flex items-center justify-center ${
-                                state.isConnected && !state.isConnecting ? 'translate-x-16' : 'translate-x-2'
-                            }">
-                                <svg class="w-5 h-5 ${
-                                    state.isConnecting ? 'text-yellow-500' :
-                                    state.isConnected ? 'text-orange-500' : 'text-gray-500'
-                                }" fill="currentColor" viewBox="0 0 24 24">
-                                    ${state.isConnected && !state.isConnecting ? 
-                                        '<path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6z"/>' :
-                                        '<path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z"/>'
-                                    }
-                                </svg>
-                            </div>
-                        </button>
-                    </div>
+                '<div class="relative mb-8">' +
+                    '<button onclick="toggleConnection()" class="w-32 h-16 rounded-full toggle-switch btn-shadow ' +
+                        (state.isConnecting ? 'bg-yellow-500' : state.isConnected ? 'bg-orange-500' : 'bg-gray-700') +
+                        ' relative ' + (state.isConnecting ? 'animate-pulse' : '') + '"' +
+                        (state.isConnecting ? ' disabled' : '') + '>' +
+                        '<div class="absolute top-2 w-12 h-12 bg-white rounded-full toggle-knob flex items-center justify-center ' +
+                            (state.isConnected && !state.isConnecting ? 'translate-x-16' : 'translate-x-2') + '">' +
+                            '<svg class="w-5 h-5 ' + (state.isConnecting ? 'text-yellow-500' : state.isConnected ? 'text-orange-500' : 'text-gray-500') + '" fill="currentColor" viewBox="0 0 24 24">' +
+                                (state.isConnected && !state.isConnecting ? 
+                                    '<path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zM9 6c0-1.66 1.34-3 3-3s3 1.34 3 3v2H9V6z"/>' :
+                                    '<path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2z"/>'
+                                ) +
+                            '</svg>' +
+                        '</div>' +
+                    '</button>' +
+                '</div>' +
 
-                    <!-- Status -->
-                    <div class="text-center mb-8">
-                        <h2 class="text-2xl font-semibold mb-2">
-                            ${state.isConnecting ? 'Подключение...' :
-                              state.isConnected ? 'Подключено' : 'Отключено'}
-                        </h2>
-                        <p class="text-gray-400 text-center px-4">
-                            ${state.isConnecting ? 'Устанавливаем безопасное соединение...' :
-                              state.isConnected 
-                                ? 'Ваше интернет-подключение защищено и конфиденциально.' 
-                                : 'Ваше интернет-подключение не защищено.'}
-                        </p>
-                    </div>
+                '<div class="text-center mb-8">' +
+                    '<h2 class="text-2xl font-semibold mb-2">' +
+                        (state.isConnecting ? 'Подключение...' : state.isConnected ? 'Подключено' : 'Отключено') +
+                    '</h2>' +
+                    '<p class="text-gray-400 text-center px-4">' +
+                        (state.isConnecting ? 'Устанавливаем безопасное соединение...' :
+                         state.isConnected 
+                            ? 'Ваше интернет-подключение защищено и конфиденциально.' 
+                            : 'Ваше интернет-подключение не защищено.') +
+                    '</p>' +
+                '</div>' +
 
-                    ${state.isConnected && !state.isConnecting ? `
-                    <!-- Connection Info -->
-                    <div class="w-full bg-gray-900/50 rounded-2xl p-4 mb-6 border border-gray-800 fade-in">
-                        <div class="flex items-center justify-between mb-3">
-                            <span class="text-gray-400">Время подключения</span>
-                            <span id="connection-time" class="text-white font-mono">${state.connectionTime}</span>
-                        </div>
-                        <div class="flex items-center justify-between mb-3">
-                            <span class="text-gray-400">Передано данных</span>
-                            <span id="data-used" class="text-white">${state.dataUsed}</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-gray-400">IP адрес</span>
-                            <span class="text-green-400">Скрыт</span>
-                        </div>
-                    </div>
-                    ` : ''}
+                (state.isConnected && !state.isConnecting ? 
+                    '<div class="w-full bg-gray-900/50 rounded-2xl p-4 mb-6 border border-gray-800 fade-in">' +
+                        '<div class="flex items-center justify-between mb-3">' +
+                            '<span class="text-gray-400">Время подключения</span>' +
+                            '<span id="connection-time" class="text-white font-mono">' + state.connectionTime + '</span>' +
+                        '</div>' +
+                        '<div class="flex items-center justify-between mb-3">' +
+                            '<span class="text-gray-400">Передано данных</span>' +
+                            '<span id="data-used" class="text-white">' + state.dataUsed + '</span>' +
+                        '</div>' +
+                        '<div class="flex items-center justify-between">' +
+                            '<span class="text-gray-400">IP адрес</span>' +
+                            '<span class="text-green-400">Скрыт</span>' +
+                        '</div>' +
+                    '</div>' 
+                : '') +
 
-                    <!-- Server Selection -->
-                    <button
-                        onclick="showServerList()"
-                        class="w-full bg-gray-900/50 rounded-2xl p-4 border border-gray-800 flex items-center justify-between btn-shadow hover:bg-gray-800/50 transition-colors mb-8"
-                    >
-                        <div class="flex items-center space-x-3">
-                            <svg class="w-5 h-5 text-orange-500" fill="currentColor" viewBox="0 0 24 24">
-                                <path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/>
-                            </svg>
-                            <div class="text-left">
-                                <div class="font-medium">Сервер</div>
-                                <div class="text-gray-400 text-sm">
-                                    ${currentServer ? `${currentServer.name} • ${currentServer.ping}` : state.selectedServer}
-                                </div>
-                            </div>
-                        </div>
-                        <svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">
-                            <polyline points="9,18 15,12 9,6"/>
-                        </svg>
-                    </button>
-                </div>
+                '<button onclick="showServerList()" class="w-full bg-gray-900/50 rounded-2xl p-4 border border-gray-800 flex items-center justify-between btn-shadow hover:bg-gray-800/50 transition-colors mb-8">' +
+                    '<div class="flex items-center space-x-3">' +
+                        '<svg class="w-5 h-5 text-orange-500" fill="currentColor" viewBox="0 0 24 24">' +
+                            '<path d="M1 9l2 2c4.97-4.97 13.03-4.97 18 0l2-2C16.93 2.93 7.08 2.93 1 9zm8 8l3 3 3-3c-1.65-1.66-4.34-1.66-6 0zm-4-4l2 2c2.76-2.76 7.24-2.76 10 0l2-2C15.14 9.14 8.87 9.14 5 13z"/>' +
+                        '</svg>' +
+                        '<div class="text-left">' +
+                            '<div class="font-medium">Сервер</div>' +
+                            '<div class="text-gray-400 text-sm">' +
+                                (currentServer ? currentServer.name + ' • ' + currentServer.ping : state.selectedServer) +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<svg class="w-5 h-5 text-gray-400" fill="currentColor" viewBox="0 0 24 24">' +
+                        '<polyline points="9,18 15,12 9,6"/>' +
+                    '</svg>' +
+                '</button>' +
+            '</div>' +
 
-                <!-- Bottom CTA -->
-                <div class="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black via-black/90 to-transparent">
-                    <div class="text-center mb-4">
-                        <div class="flex items-center justify-center mb-2">
-                            <span class="text-2xl">⚡</span>
-                        </div>
-                        <h3 class="text-xl font-semibold mb-2">VPN+</h3>
-                        <p class="text-gray-400 text-sm mb-4">
-                            Получите премиум доступ для улучшенной скорости и безопасности.
-                        </p>
-                    </div>
-                    
-                    <button class="w-full premium-gradient text-white py-4 rounded-2xl font-semibold text-lg mb-4 btn-shadow transition-all">
-                        PREMIUM - 299 ₽ в мес.
-                    </button>
-                    
-                    <div class="w-full h-1 bg-gray-800 rounded-full"></div>
-                </div>
-            `;
+            '<div class="fixed bottom-0 left-0 right-0 p-6 bg-gradient-to-t from-black via-black/90 to-transparent">' +
+                '<div class="text-center mb-4">' +
+                    '<div class="flex items-center justify-center mb-2">' +
+                        '<span class="text-2xl">⚡</span>' +
+                    '</div>' +
+                    '<h3 class="text-xl font-semibold mb-2">VPN+</h3>' +
+                    '<p class="text-gray-400 text-sm mb-4">' +
+                        'Получите премиум доступ для улучшенной скорости и безопасности.' +
+                    '</p>' +
+                '</div>' +
+                '<button class="w-full premium-gradient text-white py-4 rounded-2xl font-semibold text-lg mb-4 btn-shadow transition-all">' +
+                    'PREMIUM - 299 ₽ в мес.' +
+                '</button>' +
+                '<div class="w-full h-1 bg-gray-800 rounded-full"></div>' +
+            '</div>';
         }
 
         function ServerListScreen() {
-            return `
-                <div class="slide-in">
-                    <!-- Header -->
-                    <div class="flex items-center justify-between p-4 pt-16">
-                        <button 
-                            onclick="hideServerList()"
-                            class="text-blue-400 text-lg hover:text-blue-300 transition-colors"
-                        >
-                            ← Назад
-                        </button>
-                        <h1 class="text-xl font-semibold">Выбор сервера</h1>
-                        <div class="w-8"></div>
-                    </div>
+            var html = '<div class="slide-in">' +
+                '<div class="flex items-center justify-between p-4 pt-8">' +
+                    '<button onclick="hideServerList()" class="text-blue-400 text-lg hover:text-blue-300 transition-colors">← Назад</button>' +
+                    '<h1 class="text-xl font-semibold">Выбор сервера</h1>' +
+                    '<div class="w-8"></div>' +
+                '</div>' +
+                '<div class="px-4 space-y-2 pb-20">';
+            
+            for (var i = 0; i < servers.length; i++) {
+                var server = servers[i];
+                var isSelected = state.selectedServer === server.name;
+                html += '<button onclick="selectServer({name: \'' + server.name + '\', flag: \'' + server.flag + '\', ping: \'' + server.ping + '\'})" ' +
+                    'class="w-full flex items-center justify-between p-4 rounded-xl border transition-all btn-shadow hover:scale-[1.02] ' +
+                    (isSelected ? 'border-orange-500 bg-orange-500/10' : 'border-gray-700 bg-gray-900/50 hover:bg-gray-800/50') + '">' +
+                        '<div class="flex items-center space-x-3">' +
+                            '<span class="text-2xl">' + server.flag + '</span>' +
+                            '<div class="text-left">' +
+                                '<div class="font-medium">' + server.name + '</div>' +
+                                '<div class="text-gray-400 text-sm">' + server.location + ' • ' + server.ping + '</div>' +
+                            '</div>' +
+                        '</div>' +
+                        '<div class="flex items-center space-x-2">' +
+                            '<div class="flex items-center space-x-1">' +
+                                '<div class="w-2 h-2 bg-green-400 rounded-full"></div>' +
+                                '<span class="text-xs text-green-400">Онлайн</span>' +
+                            '</div>' +
+                            (isSelected ? '<div class="w-2 h-2 bg-orange-500 rounded-full"></div>' : '') +
+                        '</div>' +
+                    '</button>';
+            }
+            
+            html += '</div></div>';
+            return html;
+        }
 
-                    <!-- Server List -->
-                    <div class="px-4 space-y-2 pb-20">
-                        ${servers.map((server, index) => `
-                            <button
-                                onclick="selectServer({name: '${server.name}', flag: '${server.flag}', ping: '${server.ping}'})"
-                                class="w-full flex items-center justify-between p-4 rounded-xl border transition-all btn-shadow hover:scale-[1.02] ${
-                                    state.selectedServer === server.name 
-                                        ? 'border-orange-500 bg-orange-500/10' 
-                                        : 'border-gray-700 bg-gray-900/50 hover:bg-gray-800/50'
-                                }"
-                                style="animation-delay: ${index * 0.1}s"
-                            >
-                                <div class="flex items-center space-x-3">
-                                    <span class="text-2xl">${server.flag}</span>
-                                    <div class="text-left">
-                                        <div class="font-medium">${server.name}</div>
-                                        <div class="text-gray-400 text-sm">${server.location} • ${server.ping}</div>
-                                    </div>
-                                </div>
-                                <div class="flex items-center space-x-2">
-                                    <div class="flex items-center space-x-1">
-                                        <div class="w-2 h-2 bg-green-400 rounded-full"></div>
-                                        <span class="text-xs text-green-400">Онлайн</span>
-                                    </div>
-                                    ${state.selectedServer === server.name ? 
-                                        '<div class="w-2 h-2 bg-orange-500 rounded-full"></div>' : ''
-                                    }
-                                </div>
-                            </button>
-                        `).join('')}
-                    </div>
-                </div>
-            `;
+        function StatsScreen() {
+            return '<div class="slide-in">' +
+                '<div class="flex items-center justify-between p-4 pt-8">' +
+                    '<button onclick="hideStats()" class="text-blue-400 text-lg hover:text-blue-300 transition-colors">← Назад</button>' +
+                    '<h1 class="text-xl font-semibold">Статистика</h1>' +
+                    '<div class="w-8"></div>' +
+                '</div>' +
+                '<div class="px-4 space-y-4 pb-20">' +
+                    '<div class="grid grid-cols-2 gap-4">' +
+                        '<div class="bg-gradient-to-br from-blue-500/20 to-blue-600/10 rounded-2xl p-4 border border-blue-500/20">' +
+                            '<div class="text-blue-400 text-sm font-medium">Всего подключений</div>' +
+                            '<div class="text-2xl font-bold text-white mt-1">' + state.totalConnections + '</div>' +
+                        '</div>' +
+                        '<div class="bg-gradient-to-br from-green-500/20 to-green-600/10 rounded-2xl p-4 border border-green-500/20">' +
+                            '<div class="text-green-400 text-sm font-medium">Данных сохранено</div>' +
+                            '<div class="text-2xl font-bold text-white mt-1">' + state.totalDataSaved + '</div>' +
+                        '</div>' +
+                    '</div>' +
+                    '<div class="bg-gray-900/50 rounded-2xl p-4 border border-gray-800">' +
+                        '<div class="flex items-center justify-between mb-4">' +
+                            '<h3 class="font-semibold">Средняя скорость</h3>' +
+                            '<span class="text-orange-400 font-mono">' + state.averageSpeed + '</span>' +
+                        '</div>' +
+                        '<div class="space-y-2">' +
+                            '<div class="flex justify-between text-sm text-gray-400">' +
+                                '<span>Загрузка</span>' +
+                                '<span>85 Mbps</span>' +
+                            '</div>' +
+                            '<div class="w-full bg-gray-700 rounded-full h-2">' +
+                                '<div class="bg-orange-500 h-2 rounded-full" style="width: 85%"></div>' +
+                            '</div>' +
+                            '<div class="flex justify-between text-sm text-gray-400">' +
+                                '<span>Отдача</span>' +
+                                '<span>42 Mbps</span>' +
+                            '</div>' +
+                            '<div class="w-full bg-gray-700 rounded-full h-2">' +
+                                '<div class="bg-blue-500 h-2 rounded-full" style="width: 60%"></div>' +
+                            '</div>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
+        }
+
+        function SettingsScreen() {
+            return '<div class="slide-in">' +
+                '<div class="flex items-center justify-between p-4 pt-8">' +
+                    '<button onclick="hideSettings()" class="text-blue-400 text-lg hover:text-blue-300 transition-colors">← Назад</button>' +
+                    '<h1 class="text-xl font-semibold">Настройки</h1>' +
+                    '<div class="w-8"></div>' +
+                '</div>' +
+                '<div class="px-4 space-y-4 pb-20">' +
+                    '<div class="bg-gray-900/50 rounded-2xl p-4 border border-gray-800">' +
+                        '<div class="flex items-center justify-between">' +
+                            '<div class="flex items-center space-x-3">' +
+                                '<div class="w-10 h-10 bg-blue-500/20 rounded-xl flex items-center justify-center">' +
+                                    '<svg class="w-5 h-5 text-blue-400" fill="currentColor" viewBox="0 0 24 24">' +
+                                        '<path d="M12 2L2 7v10c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V7l-10-5z"/>' +
+                                    '</svg>' +
+                                '</div>' +
+                                '<div>' +
+                                    '<div class="font-medium">Автоподключение</div>' +
+                                    '<div class="text-gray-400 text-sm">Подключаться автоматически при запуске</div>' +
+                                '</div>' +
+                            '</div>' +
+                            '<button onclick="toggleSetting(\'autoConnect\')" class="w-12 h-6 rounded-full ' + (state.autoConnect ? 'bg-orange-500' : 'bg-gray-600') + ' relative transition-colors">' +
+                                '<div class="absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ' + (state.autoConnect ? 'translate-x-7' : 'translate-x-1') + '"></div>' +
+                            '</button>' +
+                        '</div>' +
+                    '</div>' +
+                '</div>' +
+            '</div>';
         }
 
         function render() {
-            const app = document.getElementById('app');
-            app.innerHTML = `
-                ${StatusBar()}
-                ${state.showServers ? '' : Header()}
-                ${state.showServers ? ServerListScreen() : MainScreen()}
-            `;
+            var app = document.getElementById('app');
+            
+            if (state.showServers) {
+                app.innerHTML = ServerListScreen();
+            } else if (state.showSettings) {
+                app.innerHTML = SettingsScreen();
+            } else if (state.showStats) {
+                app.innerHTML = StatsScreen();
+            } else {
+                app.innerHTML = Header() + MainScreen();
+            }
         }
 
-        // Инициализация приложения
+        // Инициализация
         render();
 
         // Предотвращаем зум на двойной тап
-        let lastTouchEnd = 0;
+        var lastTouchEnd = 0;
         document.addEventListener('touchend', function (event) {
-            const now = (new Date()).getTime();
+            var now = (new Date()).getTime();
             if (now - lastTouchEnd <= 300) {
                 event.preventDefault();
             }
             lastTouchEnd = now;
         }, false);
 
-        // PWA поддержка
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                // Регистрируем service worker для PWA
-                const swCode = `
-                    const CACHE_NAME = 'fastvpn-v1';
-                    const urlsToCache = ['/'];
-                    
-                    self.addEventListener('install', event => {
-                        event.waitUntil(
-                            caches.open(CACHE_NAME)
-                                .then(cache => cache.addAll(urlsToCache))
-                        );
-                    });
-                    
-                    self.addEventListener('fetch', event => {
-                        event.respondWith(
-                            caches.match(event.request)
-                                .then(response => response || fetch(event.request))
-                        );
-                    });
-                `;
-                
-                const blob = new Blob([swCode], { type: 'application/javascript' });
-                const swUrl = URL.createObjectURL(blob);
-                
-                navigator.serviceWorker.register(swUrl)
-                    .then(registration => console.log('SW registered:', registration))
-                    .catch(registrationError => console.log('SW registration failed:', registrationError));
-            });
-        }
-
-        // Дополнительные PWA функции
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            // Можно добавить кнопку "Установить приложение"
-        });
-
         console.log('🚀 FastVPN App loaded successfully!');
-        console.log('📱 Готово к установке как PWA');
     </script>
 </body>
 </html>
